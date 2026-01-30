@@ -15,6 +15,7 @@
     <div class="timer" id="timer-display">READY</div>
     <div id="controls">
         <button id="run-btn" class="btn btn-run" style="display:none" onclick="executeCode()">RUN PROGRAM</button>
+        <button id="diff-btn" class="btn" style="display:none; background: var(--accent); color: var(--bg);" onclick="showDiff()">CHECK ACCURACY</button>
         <button id="finish-btn" class="btn btn-finish" onclick="endRound()">FINISH EARLY</button>
     </div>
 </header>
@@ -30,6 +31,7 @@
             <div class="blind-active-msg" id="overlay-text">WAITING FOR INPUT</div>
         </div>
         <div id="monaco-editor" style="height: 100%;"></div>
+        <div id="diff-editor" style="height: 100%; display: none;"></div>
     </div>
 </main>
 

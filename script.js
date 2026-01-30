@@ -86,19 +86,16 @@ function startTimer() {
 }
 
 function endRound() {
-    // STOP THE TIMER IMMEDIATELY
     clearInterval(timerInterval);
-    
-    // Visual reveals
     document.getElementById('blind-overlay').style.opacity = '0';
     setTimeout(() => document.getElementById('blind-overlay').style.display = 'none', 500);
     
     document.getElementById('run-btn').style.display = 'inline-block';
+    document.getElementById('diff-btn').style.display = 'inline-block';
     document.getElementById('finish-btn').style.display = 'none';
     
-    // Lock the editor
     editor.updateOptions({ readOnly: true, cursorBlinking: "blink" });
-    log("ROUND ENDED. Timer stopped. Evaluation mode active.", "var(--accent)");
+    log("ROUND ENDED. Accuracy check available.", "var(--accent)");
 }
 
 function log(msg, color = "#adbac7") {
@@ -118,6 +115,48 @@ async function initPython() {
         log("Python Engine Ready.", "var(--success)");
     };
     document.head.appendChild(script);
+}
+
+let diffEditor;
+
+function showDiff() {
+    const originalContent = document.getElementById('source-code').innerText;
+    const studentContent = editor.getValue();
+
+    // Toggle Visibility
+    document.getElementById('monaco-editor').style.display = 'none';
+    const diffContainer = document.getElementById('diff-editor');
+    diffContainer.style.display = 'block';
+
+    // Initialize Diff Editor if it doesn't exist
+    if (!diffEditor) {
+        diffEditor = monaco.editor.createDiffEditor(diffContainer, {
+            theme: 'vs-dark',
+            readOnly: true,
+            originalEditable: false,
+            renderSideBySide: true
+        });
+    }
+
+    diffEditor.setModel({
+        original: monaco.editor.createModel(originalContent, 'text/plain'),
+        modified: monaco.editor.createModel(studentContent, 'text/plain')
+    });
+
+    // Calculate Accuracy Percentage
+    const accuracy = calculateAccuracy(originalContent, studentContent);
+    log(`ACCURACY SCORE: ${accuracy}%`, "var(--success)");
+}
+
+// Simple Levenshtein-based accuracy (Character match)
+function calculateAccuracy(orig, typed) {
+    let matches = 0;
+    const minLen = Math.min(orig.length, typed.length);
+    for (let i = 0; i < minLen; i++) {
+        if (orig[i] === typed[i]) matches++;
+    }
+    const score = (matches / Math.max(orig.length, 1)) * 100;
+    return score.toFixed(2);
 }
 
 async function executeCode() {
