@@ -3,64 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blind Coding</title>
+    <title>Srishti 2.6 | Blind Coding</title>
     <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/editor/editor.main.min.css">
     <style>
         :root {
-            --bg: #0a0a0c;
-            --panel: #16161e;
-            --accent: #7aa2f7;
+            --bg: #0d0d10;
+            --panel: #1a1b26;
+            --accent: #bb9af7;
             --danger: #f7768e;
-            --success: #9ccc65;
-            --text: #c0caf5;
+            --success: #73daca;
+            --text: #a9b1d6;
         }
 
         body {
             margin: 0; padding: 0;
             background: var(--bg);
             color: var(--text);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
-        /* Top Navigation */
         header {
-            background: var(--panel);
-            padding: 10px 20px;
+            background: #16161e;
+            padding: 12px 25px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #292e42;
+            border-bottom: 2px solid var(--accent);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
 
         .timer {
-            font-size: 1.5rem;
-            font-family: 'Courier New', Courier, monospace;
-            font-weight: bold;
+            font-size: 1.8rem;
             color: var(--accent);
-            text-shadow: 0 0 10px rgba(122, 162, 247, 0.5);
+            text-shadow: 0 0 15px rgba(187, 154, 247, 0.4);
         }
 
-        .timer.warning { color: var(--danger); }
+        .timer.warning { color: var(--danger); animation: shake 0.5s infinite; }
 
-        /* Main Workspace */
-        main {
-            display: flex;
-            flex: 1;
-            gap: 10px;
-            padding: 10px;
-        }
+        main { display: flex; flex: 1; gap: 15px; padding: 15px; }
 
         #reference-panel {
-            width: 35%;
+            width: 40%;
             background: var(--panel);
             border-radius: 8px;
-            padding: 15px;
+            padding: 20px;
             overflow-y: auto;
             border: 1px solid #292e42;
+            position: relative;
         }
 
         #editor-container {
@@ -68,239 +61,199 @@
             position: relative;
             background: var(--panel);
             border-radius: 8px;
-            overflow: hidden;
+            border: 1px solid #292e42;
         }
 
-        /* The Blind Overlay */
         #blind-overlay {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(10, 10, 12, 0.98);
-            z-index: 10;
+            background: #0d0d10;
+            z-index: 100;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
-            text-align: center;
+            pointer-events: none; /* Allows typing through the overlay */
             transition: opacity 0.5s ease;
         }
 
-        #blind-overlay.hidden {
-            opacity: 0;
-            pointer-events: none;
+        .blind-active-msg {
+            color: #292e42;
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 10px;
+            user-select: none;
         }
 
-        .blind-msg {
-            font-size: 1.2rem;
-            color: var(--accent);
-            letter-spacing: 2px;
-            animation: pulse 2s infinite;
-        }
-
-        /* Terminal Output */
         #terminal {
-            height: 200px;
+            height: 180px;
             background: #000;
-            color: #adbac7;
-            padding: 10px;
-            font-family: 'Consolas', monospace;
+            padding: 15px;
+            font-size: 0.9rem;
             overflow-y: auto;
-            border-top: 2px solid var(--accent);
+            border-top: 1px solid #292e42;
         }
 
-        .status-msg { color: #565f89; }
-        .success-msg { color: var(--success); }
-        .error-msg { color: var(--danger); }
-
-        button {
-            background: var(--accent);
-            color: var(--bg);
+        .btn {
+            padding: 8px 18px;
+            border-radius: 5px;
             border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
-            transition: 0.3s;
+            font-family: inherit;
         }
 
-        button:disabled { background: #444; cursor: not-allowed; }
+        .btn-run { background: var(--success); color: #000; }
+        .btn-finish { background: var(--danger); color: #fff; }
 
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(2px); }
+            50% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+            100% { transform: translateX(0); }
         }
     </style>
 </head>
 <body>
 
 <header>
-    <div>Blind Coding | <span id="lang-label">...</span></div>
-    <div class="timer" id="timer-display">00:00</div>
-    <div>
-        <button id="run-btn" style="display: none;" onclick="executeCode()">RUN PROGRAM</button>
-        <button id="finish-btn" onclick="endRound()">FINISH EARLY</button>
+    <div style="font-weight: bold; color: var(--accent);">SRISHTI 2.6 // BLIND_CODE</div>
+    <div class="timer" id="timer-display">READY</div>
+    <div id="controls">
+        <button id="run-btn" class="btn btn-run" style="display:none" onclick="executeCode()">RUN PROGRAM</button>
+        <button id="finish-btn" class="btn btn-finish" onclick="endRound()">FINISH EARLY</button>
     </div>
 </header>
 
 <main>
     <div id="reference-panel">
-        <h3 style="margin-top:0">Problem Statement / Reference</h3>
-        <hr border="0" height="1" bgcolor="#292e42">
-        <pre id="doc-content" style="white-space: pre-wrap;">Loading reference code...</pre>
+        <h4 style="margin: 0 0 10px 0; color: var(--accent)">SOURCE PROGRAM</h4>
+        <pre id="source-code" style="white-space: pre-wrap; margin:0; line-height: 1.5;">Loading Gist...</pre>
     </div>
 
     <div id="editor-container">
         <div id="blind-overlay">
-            <div class="blind-msg" id="blind-text">SYSTEM BLIND ACTIVE<br><small>Press any key inside the editor to start</small></div>
+            <div class="blind-active-msg" id="overlay-text">WAITING FOR INPUT</div>
         </div>
         <div id="monaco-editor" style="height: 100%;"></div>
     </div>
 </main>
 
-<div id="terminal">
-    <div class="status-msg">System initialized. Waiting for input...</div>
+<div id="terminal" id="terminal-body">
+    <div style="color: #565f89;">> System Ready. Use URL params ?lang=c/python, ?time=secs, ?gist=url</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
 
 <script>
-    // --- CONFIG & STATE ---
     const params = new URLSearchParams(window.location.search);
     const lang = params.get('lang') || 'python';
-    const docId = params.get('doc');
-    const timeLimit = parseInt(params.get('time')) || 600;
+    const gistUrl = params.get('gist');
+    const timeLimit = parseInt(params.get('time')) || 300;
     const isTestMode = params.get('test') === 'true';
 
-    let editor;
-    let pyodideInstance;
-    let timerStarted = false;
-    let timeLeft = timeLimit;
+    let editor, pyodideInstance, timerStarted = false, timeLeft = timeLimit;
 
-    // --- INITIALIZATION ---
+    // --- MONACO SETUP ---
     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
     require(['vs/editor/editor.main'], function() {
         editor = monaco.editor.create(document.getElementById('monaco-editor'), {
             value: "",
             language: lang === 'python' ? 'python' : 'cpp',
             theme: 'vs-dark',
-            fontSize: 16,
+            fontSize: 18,
             automaticLayout: true,
-            minimap: { enabled: false }
+            minimap: { enabled: false },
+            cursorBlinking: "none", // Hide cursor in blind mode
+            renderLineHighlight: "none"
         });
 
-        document.getElementById('lang-label').innerText = lang.toUpperCase();
+        // Focus editor automatically
+        editor.focus();
 
-        // Listen for first keystroke
-        editor.onKeyDown(() => {
+        // Start timer on actual content change
+        const changeListener = editor.onDidChangeModelContent(() => {
             if (!timerStarted && !isTestMode) startTimer();
         });
 
         if (isTestMode) {
-            document.getElementById('blind-overlay').classList.add('hidden');
+            document.getElementById('blind-overlay').style.display = 'none';
             document.getElementById('run-btn').style.display = 'inline-block';
-            appendToTerminal("SYSTEM: Test Mode Active. No blind, no timer.", "success-msg");
+            document.getElementById('timer-display').innerText = "TESTING";
+            editor.updateOptions({ cursorBlinking: "blink" });
         }
         
         if (lang === 'python') initPython();
     });
 
-    // --- FETCH GOOGLE DOC ---
-    if (docId) {
-        fetch(`https://docs.google.com/document/d/${docId}/export?format=txt`)
+    // --- GIST FETCHING ---
+    if (gistUrl) {
+        fetch(gistUrl)
             .then(res => res.text())
-            .then(data => {
-                document.getElementById('doc-content').innerText = data;
-            })
-            .catch(err => {
-                document.getElementById('doc-content').innerText = "Error fetching Doc. Check ID and 'Publish to Web' settings.";
-            });
+            .then(data => { document.getElementById('source-code').innerText = data; })
+            .catch(() => { document.getElementById('source-code').innerText = "Gist Load Failed."; });
     }
 
-    // --- TIMER LOGIC ---
+    // --- COMPETITION LOGIC ---
     function startTimer() {
         timerStarted = true;
-        document.getElementById('blind-text').innerHTML = "BLIND ACTIVE <br> <span style='font-size: 0.8rem; color: #565f89;'>The screen is hidden, keep typing...</span>";
+        document.getElementById('overlay-text').innerText = "BLIND ACTIVE";
         
         const interval = setInterval(() => {
             timeLeft--;
-            const mins = Math.floor(timeLeft / 60);
-            const secs = timeLeft % 60;
-            document.getElementById('timer-display').innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            const m = Math.floor(timeLeft / 60);
+            const s = timeLeft % 60;
+            document.getElementById('timer-display').innerText = `${m}:${s.toString().padStart(2, '0')}`;
             
             if (timeLeft <= 10) document.getElementById('timer-display').classList.add('warning');
-
-            if (timeLeft <= 0) {
-                clearInterval(interval);
-                endRound();
-            }
+            if (timeLeft <= 0) { clearInterval(interval); endRound(); }
         }, 1000);
     }
 
     function endRound() {
-        document.getElementById('blind-overlay').classList.add('hidden');
+        document.getElementById('blind-overlay').style.opacity = '0';
+        setTimeout(() => document.getElementById('blind-overlay').style.display = 'none', 500);
         document.getElementById('run-btn').style.display = 'inline-block';
         document.getElementById('finish-btn').style.display = 'none';
-        editor.updateOptions({ readOnly: true });
-        appendToTerminal("TIME UP / FINISHED: Blind lifted. Editor locked.", "status-msg");
+        editor.updateOptions({ readOnly: true, cursorBlinking: "blink" });
+        log("TIME EXPIRED. Evaluation mode active.", "var(--accent)");
     }
 
-    // --- TERMINAL UTILS ---
-    function appendToTerminal(text, className = "") {
+    function log(msg, color = "#adbac7") {
         const div = document.createElement('div');
-        div.className = className;
-        div.innerText = `> ${text}`;
-        const term = document.getElementById('terminal');
-        term.appendChild(div);
-        term.scrollTop = term.scrollHeight;
+        div.style.color = color;
+        div.innerText = `> ${msg}`;
+        document.getElementById('terminal').appendChild(div);
     }
 
     // --- ENGINES ---
     async function initPython() {
-        appendToTerminal("Initializing Pyodide...", "status-msg");
+        log("Loading Python Runtime...", "#565f89");
         const script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js';
         script.onload = async () => {
             pyodideInstance = await loadPyodide();
-            appendToTerminal("Python Ready.", "success-msg");
+            log("Python Engine Ready.", "var(--success)");
         };
         document.head.appendChild(script);
     }
 
     async function executeCode() {
         const code = editor.getValue();
-        appendToTerminal("Running...", "status-msg");
-
+        log("Executing...");
         if (lang === 'python') {
             try {
-                // Setup redirect for stdout
-                await pyodideInstance.runPythonAsync(`
-import sys
-import io
-sys.stdout = io.StringIO()
-                `);
+                await pyodideInstance.runPythonAsync(`import sys, io\nsys.stdout = io.StringIO()`);
                 await pyodideInstance.runPythonAsync(code);
-                const output = pyodideInstance.runPython("sys.stdout.getvalue()");
-                appendToTerminal(output || "Process finished with no output.");
-            } catch (err) {
-                appendToTerminal(err, "error-msg");
-            }
+                log(pyodideInstance.runPython("sys.stdout.getvalue()") || "No Output.");
+            } catch (err) { log(err, "var(--danger)"); }
         } else {
-            // PISTON API for C
-            try {
-                const response = await fetch("https://emkc.org/api/v2/piston/execute", {
-                    method: "POST",
-                    body: JSON.stringify({
-                        language: "c",
-                        version: "10.2.0",
-                        files: [{ content: code }]
-                    })
-                });
-                const result = await response.json();
-                appendToTerminal(result.run.output || "No output.");
-            } catch (e) {
-                appendToTerminal("Execution Error: Could not reach API.", "error-msg");
-            }
+            const res = await fetch("https://emkc.org/api/v2/piston/execute", {
+                method: "POST",
+                body: JSON.stringify({ language: "c", version: "10.2.0", files: [{ content: code }] })
+            });
+            const out = await res.json();
+            log(out.run.output || "No output.");
         }
     }
 </script>
