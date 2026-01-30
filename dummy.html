@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Blind Coding</title>
+
+  <style>
+    body { margin: 0; font-family: monospace; background: #0e0e0e; color: #fff; }
+    #topbar { padding: 10px; background: #111; display: flex; justify-content: space-between; }
+    #timer { font-weight: bold; }
+    #reference {
+      padding: 20px;
+      white-space: pre;
+      font-size: 14px;
+    }
+    #editor { height: calc(100vh - 50px); display: none; }
+    #overlay {
+      position: fixed; inset: 0;
+      background: black;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    button {
+      background: #333; color: #fff;
+      border: none; padding: 6px 12px;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.4; }
+  </style>
+</head>
+
+<body>
+
+<div id="topbar">
+  <div id="title">Loading...</div>
+  <div>
+    <span id="timer">--</span>
+    <button id="finishBtn" disabled>Finish</button>
+    <button id="runBtn" disabled>Run</button>
+  </div>
+</div>
+
+<pre id="reference"></pre>
+<div id="editor"></div>
+
+<div id="overlay">Blind Mode Active</div>
+
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+
+<script>
+let pack, editor;
+let buffer = "";
+let blind = false;
+let started = false;
+let remaining;
+let timerInterval;
+
+const params = new URLSearchParams(location.search);
+const packUrl = params.get("pack");
+const testMode = params.get("test") === "true";
+
+if (!packUrl) {
+  alert("Missing pack URL");
+  throw 0;
+}
+
+fetch(packUrl, { cache: "no-store" })
+  .then(r => r.json())
+  .then(p => {
+    pack = p;
+    Object.freeze(pack);
+    init();
+  });
+
+function init() {
+  document.getElementById("title").textContent = pack.title;
+  document.getElementById("reference").textContent = pack.referenceCode;
+  remaining = pack.timeLimit;
+  updateTimer();
+
+  if (!testMode) enableBlindView();
+  initEditor();
+}
+
+function enableBlindView() {
+  blind = true;
+  document.documentElement.requestFullscreen?.();
+  navigator.wakeLock?.request("screen");
+}
+
+function initEditor() {
+  require.config({ paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs" }});
+  require(["vs/editor/editor.main"], () => {
+    editor = monaco.editor.create(document.getElementById("editor"), {
+      value: "",
+      language: pack.language === "python" ? "python" : "c",
+      theme: "vs-dark",
+      readOnly: true
+    });
+  });
+}
+
+document.addEventListener("keydown", e => {
+  if (!blind || testMode) return;
+
+  if (!started) {
+    started = true;
+    startTimer();
+    document.getElementById("reference").style.display = "none";
+    document.getElementById("overlay").style.display = "flex";
+    document.getElementById("finishBtn").disabled = false;
+  }
+
+  e.preventDefault();
+  buffer += e.key.length === 1 ? e.key : "";
+});
+
+function startTimer() {
+  timerInterval = setInterval(() => {
+    remaining--;
+    updateTimer();
+    if (remaining <= 0) endBlind();
+  }, 1000);
+}
+
+function updateTimer() {
+  document.getElementById("timer").textContent = remaining + "s";
+}
+
+function endBlind() {
+  clearInterval(timerInterval);
+  blind = false;
+  document.getElementById("overlay").style.display = "none";
+  document.getElementById("editor").style.display = "block";
+  editor.setValue(buffer);
+  document.getElementById("finishBtn").disabled = true;
+  document.getElementById("runBtn").disabled = false;
+}
+
+document.getElementById("finishBtn").onclick = endBlind;
+
+document.getElementById("runBtn").onclick = async () => {
+  const code = editor.getValue();
+  if (pack.language === "python") runPython(code);
+  else runC(code);
+};
+
+// ---------------- PYTHON (PYODIDE) ----------------
+async function runPython(code) {
+  if (!window.pyodide) {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js";
+    document.head.appendChild(s);
+    await new Promise(r => s.onload = r);
+    window.pyodide = await loadPyodide();
+  }
+  try {
+    const result = await pyodide.runPythonAsync(code);
+    alert(result ?? "Executed");
+  } catch (e) {
+    alert(e);
+  }
+}
+
+// ---------------- C (PISTON) ----------------
+async function runC(code) {
+  const res = await fetch("https://emkc.org/api/v2/piston/execute", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      language: "c",
+      version: "10.2.0",
+      files: [{ content: code }]
+    })
+  });
+  const out = await res.json();
+  alert(out.run?.output || "No output");
+}
+</script>
+
+</body>
+</html>

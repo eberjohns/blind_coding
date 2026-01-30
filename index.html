@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blind Coding</title>
+    <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/editor/editor.main.min.css">
+    <style>
+        :root {
+            --bg: #0a0a0c;
+            --panel: #16161e;
+            --accent: #7aa2f7;
+            --danger: #f7768e;
+            --success: #9ccc65;
+            --text: #c0caf5;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Top Navigation */
+        header {
+            background: var(--panel);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #292e42;
+        }
+
+        .timer {
+            font-size: 1.5rem;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            color: var(--accent);
+            text-shadow: 0 0 10px rgba(122, 162, 247, 0.5);
+        }
+
+        .timer.warning { color: var(--danger); }
+
+        /* Main Workspace */
+        main {
+            display: flex;
+            flex: 1;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        #reference-panel {
+            width: 35%;
+            background: var(--panel);
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto;
+            border: 1px solid #292e42;
+        }
+
+        #editor-container {
+            flex: 1;
+            position: relative;
+            background: var(--panel);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        /* The Blind Overlay */
+        #blind-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 10, 12, 0.98);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            transition: opacity 0.5s ease;
+        }
+
+        #blind-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .blind-msg {
+            font-size: 1.2rem;
+            color: var(--accent);
+            letter-spacing: 2px;
+            animation: pulse 2s infinite;
+        }
+
+        /* Terminal Output */
+        #terminal {
+            height: 200px;
+            background: #000;
+            color: #adbac7;
+            padding: 10px;
+            font-family: 'Consolas', monospace;
+            overflow-y: auto;
+            border-top: 2px solid var(--accent);
+        }
+
+        .status-msg { color: #565f89; }
+        .success-msg { color: var(--success); }
+        .error-msg { color: var(--danger); }
+
+        button {
+            background: var(--accent);
+            color: var(--bg);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        button:disabled { background: #444; cursor: not-allowed; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div>Blind Coding | <span id="lang-label">...</span></div>
+    <div class="timer" id="timer-display">00:00</div>
+    <div>
+        <button id="run-btn" style="display: none;" onclick="executeCode()">RUN PROGRAM</button>
+        <button id="finish-btn" onclick="endRound()">FINISH EARLY</button>
+    </div>
+</header>
+
+<main>
+    <div id="reference-panel">
+        <h3 style="margin-top:0">Problem Statement / Reference</h3>
+        <hr border="0" height="1" bgcolor="#292e42">
+        <pre id="doc-content" style="white-space: pre-wrap;">Loading reference code...</pre>
+    </div>
+
+    <div id="editor-container">
+        <div id="blind-overlay">
+            <div class="blind-msg" id="blind-text">SYSTEM BLIND ACTIVE<br><small>Press any key inside the editor to start</small></div>
+        </div>
+        <div id="monaco-editor" style="height: 100%;"></div>
+    </div>
+</main>
+
+<div id="terminal">
+    <div class="status-msg">System initialized. Waiting for input...</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+
+<script>
+    // --- CONFIG & STATE ---
+    const params = new URLSearchParams(window.location.search);
+    const lang = params.get('lang') || 'python';
+    const docId = params.get('doc');
+    const timeLimit = parseInt(params.get('time')) || 600;
+    const isTestMode = params.get('test') === 'true';
+
+    let editor;
+    let pyodideInstance;
+    let timerStarted = false;
+    let timeLeft = timeLimit;
+
+    // --- INITIALIZATION ---
+    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+    require(['vs/editor/editor.main'], function() {
+        editor = monaco.editor.create(document.getElementById('monaco-editor'), {
+            value: "",
+            language: lang === 'python' ? 'python' : 'cpp',
+            theme: 'vs-dark',
+            fontSize: 16,
+            automaticLayout: true,
+            minimap: { enabled: false }
+        });
+
+        document.getElementById('lang-label').innerText = lang.toUpperCase();
+
+        // Listen for first keystroke
+        editor.onKeyDown(() => {
+            if (!timerStarted && !isTestMode) startTimer();
+        });
+
+        if (isTestMode) {
+            document.getElementById('blind-overlay').classList.add('hidden');
+            document.getElementById('run-btn').style.display = 'inline-block';
+            appendToTerminal("SYSTEM: Test Mode Active. No blind, no timer.", "success-msg");
+        }
+        
+        if (lang === 'python') initPython();
+    });
+
+    // --- FETCH GOOGLE DOC ---
+    if (docId) {
+        fetch(`https://docs.google.com/document/d/${docId}/export?format=txt`)
+            .then(res => res.text())
+            .then(data => {
+                document.getElementById('doc-content').innerText = data;
+            })
+            .catch(err => {
+                document.getElementById('doc-content').innerText = "Error fetching Doc. Check ID and 'Publish to Web' settings.";
+            });
+    }
+
+    // --- TIMER LOGIC ---
+    function startTimer() {
+        timerStarted = true;
+        document.getElementById('blind-text').innerHTML = "BLIND ACTIVE <br> <span style='font-size: 0.8rem; color: #565f89;'>The screen is hidden, keep typing...</span>";
+        
+        const interval = setInterval(() => {
+            timeLeft--;
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            document.getElementById('timer-display').innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            
+            if (timeLeft <= 10) document.getElementById('timer-display').classList.add('warning');
+
+            if (timeLeft <= 0) {
+                clearInterval(interval);
+                endRound();
+            }
+        }, 1000);
+    }
+
+    function endRound() {
+        document.getElementById('blind-overlay').classList.add('hidden');
+        document.getElementById('run-btn').style.display = 'inline-block';
+        document.getElementById('finish-btn').style.display = 'none';
+        editor.updateOptions({ readOnly: true });
+        appendToTerminal("TIME UP / FINISHED: Blind lifted. Editor locked.", "status-msg");
+    }
+
+    // --- TERMINAL UTILS ---
+    function appendToTerminal(text, className = "") {
+        const div = document.createElement('div');
+        div.className = className;
+        div.innerText = `> ${text}`;
+        const term = document.getElementById('terminal');
+        term.appendChild(div);
+        term.scrollTop = term.scrollHeight;
+    }
+
+    // --- ENGINES ---
+    async function initPython() {
+        appendToTerminal("Initializing Pyodide...", "status-msg");
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js';
+        script.onload = async () => {
+            pyodideInstance = await loadPyodide();
+            appendToTerminal("Python Ready.", "success-msg");
+        };
+        document.head.appendChild(script);
+    }
+
+    async function executeCode() {
+        const code = editor.getValue();
+        appendToTerminal("Running...", "status-msg");
+
+        if (lang === 'python') {
+            try {
+                // Setup redirect for stdout
+                await pyodideInstance.runPythonAsync(`
+import sys
+import io
+sys.stdout = io.StringIO()
+                `);
+                await pyodideInstance.runPythonAsync(code);
+                const output = pyodideInstance.runPython("sys.stdout.getvalue()");
+                appendToTerminal(output || "Process finished with no output.");
+            } catch (err) {
+                appendToTerminal(err, "error-msg");
+            }
+        } else {
+            // PISTON API for C
+            try {
+                const response = await fetch("https://emkc.org/api/v2/piston/execute", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        language: "c",
+                        version: "10.2.0",
+                        files: [{ content: code }]
+                    })
+                });
+                const result = await response.json();
+                appendToTerminal(result.run.output || "No output.");
+            } catch (e) {
+                appendToTerminal("Execution Error: Could not reach API.", "error-msg");
+            }
+        }
+    }
+</script>
+</body>
+</html>
