@@ -169,7 +169,21 @@
             fontSize: 18,
             automaticLayout: true,
             minimap: { enabled: false },
-            cursorBlinking: "none", // Hide cursor in blind mode
+            
+            // --- RAW NOTEPAD MODE SETTINGS ---
+            autoClosingBrackets: "never",
+            autoClosingQuotes: "never",
+            autoIndent: "none",
+            formatOnType: false,
+            formatOnPaste: false,
+            quickSuggestions: false, // Disables the popup autocomplete
+            suggestOnTriggerCharacters: false,
+            acceptSuggestionOnEnter: "off",
+            tabSize: 4, 
+            insertSpaces: true, // Standard for Python, but doesn't auto-indent
+            // ---------------------------------
+
+            cursorBlinking: "none",
             renderLineHighlight: "none"
         });
 
