@@ -152,7 +152,7 @@
     const timeLimit = parseInt(params.get('time')) || 300;
     const isTestMode = params.get('test') === 'true';
 
-    let editor, pyodideInstance, timerStarted = false, timeLeft = timeLimit;
+    let editor, pyodideInstance, timerStarted = false, timeLeft = timeLimit,timerInterval;
 
     // --- MONACO SETUP ---
     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
@@ -199,24 +199,35 @@
         timerStarted = true;
         document.getElementById('overlay-text').innerText = "BLIND ACTIVE";
         
-        const interval = setInterval(() => {
+        // Assign the interval to our global variable
+        timerInterval = setInterval(() => {
             timeLeft--;
             const m = Math.floor(timeLeft / 60);
             const s = timeLeft % 60;
             document.getElementById('timer-display').innerText = `${m}:${s.toString().padStart(2, '0')}`;
             
             if (timeLeft <= 10) document.getElementById('timer-display').classList.add('warning');
-            if (timeLeft <= 0) { clearInterval(interval); endRound(); }
+            
+            if (timeLeft <= 0) {
+                endRound(); // The interval is cleared inside endRound
+            }
         }, 1000);
     }
 
     function endRound() {
+        // STOP THE TIMER IMMEDIATELY
+        clearInterval(timerInterval);
+        
+        // Visual reveals
         document.getElementById('blind-overlay').style.opacity = '0';
         setTimeout(() => document.getElementById('blind-overlay').style.display = 'none', 500);
+        
         document.getElementById('run-btn').style.display = 'inline-block';
         document.getElementById('finish-btn').style.display = 'none';
+        
+        // Lock the editor
         editor.updateOptions({ readOnly: true, cursorBlinking: "blink" });
-        log("TIME EXPIRED. Evaluation mode active.", "var(--accent)");
+        log("ROUND ENDED. Timer stopped. Evaluation mode active.", "var(--accent)");
     }
 
     function log(msg, color = "#adbac7") {
