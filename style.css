@@ -1,0 +1,106 @@
+:root {
+    --bg: #0d0d10;
+    --panel: #1a1b26;
+    --accent: #bb9af7;
+    --danger: #f7768e;
+    --success: #73daca;
+    --text: #a9b1d6;
+}
+
+body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+header {
+    background: #16161e;
+    padding: 12px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--accent);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.timer {
+    font-size: 1.8rem;
+    color: var(--accent);
+    text-shadow: 0 0 15px rgba(187, 154, 247, 0.4);
+}
+
+.timer.warning { color: var(--danger); animation: shake 0.5s infinite; }
+
+main { display: flex; flex: 1; gap: 15px; padding: 15px; }
+
+#reference-panel {
+    width: 40%;
+    background: var(--panel);
+    border-radius: 8px;
+    padding: 20px;
+    overflow-y: auto;
+    border: 1px solid #292e42;
+    position: relative;
+}
+
+#editor-container {
+    flex: 1;
+    position: relative;
+    background: var(--panel);
+    border-radius: 8px;
+    border: 1px solid #292e42;
+}
+
+#blind-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #0d0d10;
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none; /* Allows typing through the overlay */
+    transition: opacity 0.5s ease;
+}
+
+.blind-active-msg {
+    color: #292e42;
+    font-size: 2rem;
+    text-transform: uppercase;
+    letter-spacing: 10px;
+    user-select: none;
+}
+
+#terminal {
+    height: 180px;
+    background: #000;
+    padding: 15px;
+    font-size: 0.9rem;
+    overflow-y: auto;
+    border-top: 1px solid #292e42;
+}
+
+.btn {
+    padding: 8px 18px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    font-family: inherit;
+}
+
+.btn-run { background: var(--success); color: #000; }
+.btn-finish { background: var(--danger); color: #fff; }
+
+@keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(2px); }
+    50% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+    100% { transform: translateX(0); }
+}
