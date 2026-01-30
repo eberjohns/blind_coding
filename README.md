@@ -1,4 +1,4 @@
-# 🎯 Srishti 2.6 | Blind Coding Tool
+# 🎯 Blind Coding Tool
 
 A sleek, cinematic, frontend-only web application designed for **Blind Coding competitions**.
 
